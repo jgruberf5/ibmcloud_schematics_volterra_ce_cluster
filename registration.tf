@@ -1,5 +1,5 @@
 
-resource "null_resource" "register" {
+resource "null_resource" "volterra_lifecycle" {
 
   triggers = {
     site                = local.cluster_name,
@@ -14,18 +14,18 @@ resource "null_resource" "register" {
 
   provisioner "local-exec" {
     when        = create
-    working_dir = "path.module"
-    command     = "site_registration_actions.py --delay 30 --action 'registernodes' --site '${self.triggers.site}' --tenant '${self.triggers.tenant}' --token '${self.triggers.token}' --ssl ${self.triggers.allow_ssl_tunnels} --ipsec ${self.triggers.allow_ipsec_tunnels} --size ${self.triggers.size}"
-    interpreter = ["python3"]
+    command     = "${path.module}/site_registration_actions.py --delay 60 --action 'registernodes' --site '${self.triggers.site}' --tenant '${self.triggers.tenant}' --token '${self.triggers.token}' --ssl ${self.triggers.allow_ssl_tunnels} --ipsec ${self.triggers.allow_ipsec_tunnels} --size ${self.triggers.size}"
     on_failure  = continue
   }
 
   provisioner "local-exec" {
     when        = destroy
-    working_dir = "path.module"
-    command     = "site_registration_actions.py --action sitedelete --site '${self.triggers.site}' --tenant '${self.triggers.tenant}' --token '${self.triggers.token}'"
-    interpreter = ["python3"]
+    command     = "${path.module}/site_registration_actions.py --action sitedelete --site '${self.triggers.site}' --tenant '${self.triggers.tenant}' --token '${self.triggers.token}'"
     on_failure  = continue
   }
 }
-
+resource "local_file" "complete_flag" {
+  filename   = "${path.module}/complete.flag"
+  content    = random_uuid.namer.result
+  depends_on = [null_resource.volterra_lifecycle]
+}

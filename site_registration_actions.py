@@ -9,7 +9,7 @@ PENDING_TIMEOUT = 300
 PENDING_WAIT = 30
 
 
-def get_pending_registrations(tenant, token):
+def get_pending_registrations(site, tenant, token):
     url = "https://%s.console.ves.volterra.io/api/register/namespaces/system/listregistrationsbystate" % tenant
     headers = {
         "Authorization": "APIToken %s" % token
@@ -22,11 +22,15 @@ def get_pending_registrations(tenant, token):
     try:
         request = urllib.request.Request(
             url, headers=headers,  data=bytes(data.encode('utf-8')), method='POST')
+        pending_return = []
         with urllib.request.urlopen(request) as response:
-            return json.load(response)
+            for item in json.load(response)['items']:
+                if 'get_spec' in item and item['get_spec']['passport']['cluster_name'] == site:
+                    pending_return.append(item)
+        return pending_return
     except Exception as ex:
         sys.stderr.write(
-            'Can not fetch pending registrations for %s: %s' % (url, ex))
+            "Can not fetch pending registrations for %s: %s\n" % (url, ex))
         sys.exit(1)
 
 
@@ -52,7 +56,7 @@ def approve_registration(tenant, token, name, namespace, state, passport, tunnel
         return True
     except Exception as ex:
         sys.stderr.write(
-            'could not approve registration for %s : %s' % (url, ex))
+            "could not approve registration for %s : %s\n" % (url, ex))
         return False
 
 
@@ -74,7 +78,7 @@ def decomission_site(site, tenant, token):
         urllib.request.urlopen(request)
     except Exception as ex:
         sys.stderr.write(
-            'Can not delete site %s: %s' % (url, ex))
+            "Can not delete site %s: %s\n" % (url, ex))
         sys.exit(1)
 
 
@@ -134,16 +138,22 @@ def main():
 
     if args.action == "registernodes":
         if args.delay > 0:
+            sys.stdout.write(
+                "delaying polling for CE pending registrations for %d seconds..\n" % args.delay)
+            sys.stdout.flush()
             time.sleep(args.delay)
         end_time = time.time() + PENDING_TIMEOUT
         approved_registrations = 0
         while (end_time - time.time()) > 0:
             pending = get_pending_registrations(
-                args.tenant, args.token)
+                args.site, args.tenant, args.token)
             if not pending:
+                sys.stdout.write(
+                    "no registrations pending approval.. retrying in %d seconds.\n" % PENDING_WAIT)
+                sys.stdout.flush()
                 time.sleep(PENDING_WAIT)
             else:
-                for reg in pending['items']:
+                for reg in pending:
                     passport = reg['get_spec']['passport']
                     passport['tenant'] = reg['tenant']
                     passport['cluster_size'] = args.size
@@ -153,9 +163,13 @@ def main():
                     elif args.ssl == 'true':
                         tunnel_type = 'SITE_TO_SITE_TUNNEL_SSL'
                     if approve_registration(args.tenant, args.token, reg['name'], reg['namespace'], 2, passport, tunnel_type):
+                        sys.stdout.write("approved registration %s for node %s\n" % (reg['name'], reg['get_spec']['infra']['hostname']))
                         approved_registrations = approved_registrations + 1
                     if approved_registrations == args.size:
                         sys.exit(0)
+        sys.stderr.write(
+            "no registrations pending approval after %d seconds.. giving up.\n" % PENDING_TIMEOUT)
+        sys.stdout.flush()
 
     if args.action == "sitedelete":
         decomission_site(args.site, args.tenant, args.token)
