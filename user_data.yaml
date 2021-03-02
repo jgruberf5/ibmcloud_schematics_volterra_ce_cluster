@@ -20,10 +20,16 @@ write_files:
       ClusterType: ce
       Config: /etc/vpm/config.yaml
       PrivateNIC: eth0
+      InsideNIC: ${inside_nic}
       Latitude: ${latitude}
       Longitude: ${longitude}
       MauriceEndpoint: https://register.ves.volterra.io
       MauricePrivateEndpoint: https://register-tls.ves.volterra.io
       Token: ${site_token}
+      Labels:
+        provider: IBM
+        hw-model: ${profile}
+        hw-vendor: ibm-vpc-gen2
+        ves.io/fleet: ${fleet_name}
 bootcmd:
   - /usr/bin/touch /etc/vpm/passwdchanged

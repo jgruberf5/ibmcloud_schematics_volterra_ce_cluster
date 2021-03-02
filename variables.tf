@@ -2,7 +2,7 @@
 # version - Terraform version required
 ##################################################################################
 variable "TF_VERSION" {
-  default = "0.13"
+  default     = "0.13"
   description = "terraform version required for schematics"
 }
 
@@ -22,6 +22,24 @@ variable "resource_group" {
   type        = string
   default     = "default"
   description = "The IBM Cloud resource group to create the F5 BIG-IP instance"
+}
+
+##################################################################################
+# voltera_tenant - The Volterra tenant for API access
+##################################################################################
+variable "volterra_tenant" {
+  type        = string
+  default     = ""
+  description = "The Volterra tenant for API access"
+}
+
+##################################################################################
+# voltera_api_token - The Volterra token for API access
+##################################################################################
+variable "volterra_api_token" {
+  type        = string
+  default     = ""
+  description = "The Volterra token for API access"
 }
 
 ##################################################################################
@@ -115,11 +133,46 @@ variable "volterra_admin_password" {
 }
 
 ##################################################################################
-# volterra_subnet_id - VPC Gen2 subnet ID for the Volterra cluster
+# voltera_cluster_name - The Volterra fleet name to tag the cluster
 ##################################################################################
-variable "volterra_subnet_id" {
+variable "volterra_fleet_name" {
   type        = string
   default     = ""
-  description = "VPC Gen2 subnet ID for the Volterra cluster"
+  description = "The Volterra fleet name to tag the cluster"
 }
 
+##################################################################################
+# external_subnet_id - VPC Gen2 subnet ID for Volterra
+##################################################################################
+variable "external_subnet_id" {
+  type        = string
+  default     = ""
+  description = "VPC Gen2 subnet ID for Volterra"
+}
+
+##################################################################################
+# internal_subnet_id - VPC Gen2 subnet ID for internal resources
+##################################################################################
+variable "internal_subnet_id" {
+  type        = string
+  default     = ""
+  description = "VPC Gen2 subnet ID for internal resources"
+}
+
+##################################################################################
+# volterra_ssl_tunnels - Use SSL tunnels to connect to Volterra
+##################################################################################
+variable "volterra_ssl_tunnels" {
+  type        = bool
+  default     = false
+  description = "Use SSL tunnels to connect to Volterra"
+}
+
+##################################################################################
+# volterra_ipsec_tunnels - Use IPSEC tunnels to connect to Volterra
+##################################################################################
+variable "volterra_ipsec_tunnels" {
+  type        = bool
+  default     = true
+  description = "Use IPSEC tunnels to connect to Volterra"
+}

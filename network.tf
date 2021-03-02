@@ -1,5 +1,9 @@
 data "ibm_is_subnet" "external_subnet" {
-  identifier = var.volterra_subnet_id
+  identifier = var.external_subnet_id
+}
+
+locals {
+  secondary_subnets = compact(list(var.internal_subnet_id))
 }
 
 resource "random_uuid" "namer" {}

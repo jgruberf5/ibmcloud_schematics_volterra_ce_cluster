@@ -24,32 +24,38 @@ locals {
   template_file = file("${path.module}/user_data.yaml")
   # user admin_password if supplied, else set a random password
   admin_password = var.volterra_admin_password == "" ? random_password.password.result : var.volterra_admin_password
-  # because someone can't spell in the /var/vpm/certified-hardware.yaml file
+  # because someone can't spell in the /etc/vpm/certified-hardware.yaml file in the qcow2 image
   certified_hardware_map = {
     voltstack = ["kvm-volstack-combo", "kvm-multi-nic-voltstack-combo"],
     voltmesh = ["kvm-voltmesh","kvm-multi-nic-voltmesh"]
   }
   which_stack = var.volterra_voltstack ? "voltstack" : "voltmesh"
-  # leave this here so it is easy to add additional network interfaces if needed
-  certified_hardware = element(local.certified_hardware_map[local.which_stack].*, 0)  
+  stack_index = length(local.secondary_subnets) == 1 ? 1 : 0
+  inside_nic  = length(local.secondary_subnets) == 1 ? "eth1" : "null"
+  certified_hardware = element(local.certified_hardware_map[local.which_stack].*, local.stack_index)
+  cluster_name = var.volterra_cluster_name == "" ? "ibm-cloud-${var.region}-${random_uuid.namer.result}" : var.volterra_cluster_name
+  fleet_name  = var.volterra_fleet_name == "" ? "null": var.volterra_fleet_name
 }
 
 data "template_file" "user_data" {
   template = local.template_file
   vars = {
     admin_password           = local.admin_password
-    cluster_name             = var.volterra_cluster_name
+    cluster_name             = local.cluster_name
+    fleet_name               = local.fleet_name
     certified_hardware       = local.certified_hardware
     latitude                 = var.site_latitude
     longitude                = var.site_longitude
     site_token               = var.volterra_site_token
+    profile                  = var.instance_profile
+    inside_nic               = local.inside_nic
   }
 }
 
 # create compute instance
-resource "ibm_is_instance" "f5_ve_instance" {
+resource "ibm_is_instance" "volterra_ce_instance" {
   count          = var.volterra_cluster_size
-  name           = "${var.volterra_cluster_name}-${count.index}"
+  name           = "${local.cluster_name}-${count.index}"
   resource_group = data.ibm_resource_group.group.id
   image          = data.ibm_is_image.vt_custom_image.id
   profile        = data.ibm_is_instance_profile.instance_profile.id
@@ -58,6 +64,15 @@ resource "ibm_is_instance" "f5_ve_instance" {
     subnet            = data.ibm_is_subnet.external_subnet.id
     security_groups   = [ibm_is_security_group.vt_open_sg.id]
     allow_ip_spoofing = true
+  }
+  dynamic "network_interfaces" {
+    for_each = local.secondary_subnets
+    content {
+      name              = format("data-1-%d", (network_interfaces.key + 1))
+      subnet            = network_interfaces.value
+      security_groups   = [ibm_is_security_group.vt_open_sg.id]
+      allow_ip_spoofing = true
+    }
   }
   vpc        = data.ibm_is_subnet.external_subnet.vpc
   zone       = data.ibm_is_subnet.external_subnet.zone
@@ -74,5 +89,5 @@ resource "ibm_is_floating_ip" "external_floating_ip" {
   count          = var.volterra_cluster_size
   name           = "fip-${var.volterra_cluster_name}-${count.index}"
   resource_group = data.ibm_resource_group.group.id
-  target         = element(ibm_is_instance.f5_ve_instance.*.primary_network_interface.0.id, count.index)
+  target         = element(ibm_is_instance.volterra_ce_instance.*.primary_network_interface.0.id, count.index)
 }
