@@ -133,7 +133,7 @@ variable "volterra_admin_password" {
 }
 
 ##################################################################################
-# voltera_cluster_name - The Volterra fleet name to tag the cluster
+# voltera_fleet_name - The Volterra fleet name to tag the cluster
 ##################################################################################
 variable "volterra_fleet_name" {
   type        = string

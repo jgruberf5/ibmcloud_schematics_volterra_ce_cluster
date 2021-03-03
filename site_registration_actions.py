@@ -8,29 +8,24 @@ import time
 PENDING_TIMEOUT = 300
 PENDING_WAIT = 30
 
+# REGISGTRATION_STATES = [ 'NOTSET', 'NEW', 'APPROVED', 'ADMITTED', 'RETIRED', 'FAILED', 'DONE', 'PENDING', 'ONLINE', 'UPGRADING', 'MAINTENANCE' ]
 
-def get_pending_registrations(site, tenant, token):
-    url = "https://%s.console.ves.volterra.io/api/register/namespaces/system/listregistrationsbystate" % tenant
+COUNT_REGISTRATION_STATES = ['APPROVED', 'ADMITTED', 'ONLINE']
+
+
+def get_registrations(site, tenant, token):
+    url = "https://%s.console.ves.volterra.io/api/register/namespaces/system/registrations_by_site/" % site
     headers = {
         "Authorization": "APIToken %s" % token
     }
-    data = {
-        "namespace": "system",
-        "state": "PENDING"
-    }
-    data = json.dumps(data)
     try:
         request = urllib.request.Request(
-            url, headers=headers,  data=bytes(data.encode('utf-8')), method='POST')
-        pending_return = []
+            url, headers=headers, method='GET')
         with urllib.request.urlopen(request) as response:
-            for item in json.load(response)['items']:
-                if 'get_spec' in item and item['get_spec']['passport']['cluster_name'] == site:
-                    pending_return.append(item)
-        return pending_return
+            return response['items']
     except Exception as ex:
         sys.stderr.write(
-            "Can not fetch pending registrations for %s: %s\n" % (url, ex))
+            "Can not fetch site registrations for %s: %s\n" % (url, ex))
         sys.exit(1)
 
 
@@ -143,29 +138,32 @@ def main():
             sys.stdout.flush()
             time.sleep(args.delay)
         end_time = time.time() + PENDING_TIMEOUT
-        approved_registrations = 0
+        counted_registrations = 0
         while (end_time - time.time()) > 0:
-            pending = get_pending_registrations(
+            registrations = get_registrations(
                 args.site, args.tenant, args.token)
-            if not pending:
+            if not registrations:
                 sys.stdout.write(
                     "no registrations pending approval.. retrying in %d seconds.\n" % PENDING_WAIT)
                 sys.stdout.flush()
                 time.sleep(PENDING_WAIT)
             else:
-                for reg in pending:
-                    passport = reg['get_spec']['passport']
-                    passport['tenant'] = reg['tenant']
-                    passport['cluster_size'] = args.size
-                    tunnel_type = 'SITE_TO_SITE_TUNNEL_IPSEC'
-                    if args.ssl == 'true' and args.ipsec == 'true':
-                        tunnel_type = 'SITE_TO_SITE_TUNNEL_IPSEC_OR_SSL'
-                    elif args.ssl == 'true':
-                        tunnel_type = 'SITE_TO_SITE_TUNNEL_SSL'
-                    if approve_registration(args.tenant, args.token, reg['name'], reg['namespace'], 2, passport, tunnel_type):
-                        sys.stdout.write("approved registration %s for node %s\n" % (reg['name'], reg['get_spec']['infra']['hostname']))
-                        approved_registrations = approved_registrations + 1
-                    if approved_registrations == args.size:
+                for reg in registrations:
+                    if reg['object']['status']['current_state'] == "PENDING":
+                        passport = reg['get_spec']['passport']
+                        passport['tenant'] = reg['tenant']
+                        passport['cluster_size'] = args.size
+                        tunnel_type = 'SITE_TO_SITE_TUNNEL_IPSEC'
+                        if args.ssl == 'true' and args.ipsec == 'true':
+                            tunnel_type = 'SITE_TO_SITE_TUNNEL_IPSEC_OR_SSL'
+                        elif args.ssl == 'true':
+                            tunnel_type = 'SITE_TO_SITE_TUNNEL_SSL'
+                        if approve_registration(args.tenant, args.token, reg['name'], reg['namespace'], 2, passport, tunnel_type):
+                            sys.stdout.write("approved registration %s for node %s\n" % (reg['name'], reg['get_spec']['infra']['hostname']))
+                            counted_registrations = counted_registrations + 1
+                    elif reg['object']['status']['current_state'] in COUNT_REGISTRATION_STATES:
+                        counted_registrations = counted_registrations + 1
+                    if counted_registrations == args.size:
                         sys.exit(0)
         sys.stderr.write(
             "no registrations pending approval after %d seconds.. giving up.\n" % PENDING_TIMEOUT)
