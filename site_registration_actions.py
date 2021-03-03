@@ -14,15 +14,15 @@ COUNT_REGISTRATION_STATES = ['APPROVED', 'ADMITTED', 'ONLINE']
 
 
 def get_registrations(site, tenant, token):
-    url = "https://%s.console.ves.volterra.io/api/register/namespaces/system/registrations_by_site/" % site
+    url = "https://%s.console.ves.volterra.io/api/register/namespaces/system/registrations_by_site/%s" % (tenant,site)
     headers = {
         "Authorization": "APIToken %s" % token
     }
     try:
         request = urllib.request.Request(
             url, headers=headers, method='GET')
-        with urllib.request.urlopen(request) as response:
-            return response['items']
+        response = urllib.request.urlopen(request)
+        return json.load(response)['items']
     except Exception as ex:
         sys.stderr.write(
             "Can not fetch site registrations for %s: %s\n" % (url, ex))
