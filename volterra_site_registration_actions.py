@@ -5,6 +5,8 @@ import urllib.request
 import json
 import time
 
+from urllib.error import HTTPError
+
 PENDING_TIMEOUT = 300
 PENDING_WAIT = 30
 
@@ -14,7 +16,8 @@ COUNT_REGISTRATION_STATES = ['APPROVED', 'ADMITTED', 'ONLINE']
 
 
 def get_registrations(site, tenant, token):
-    url = "https://%s.console.ves.volterra.io/api/register/namespaces/system/registrations_by_site/%s" % (tenant,site)
+    url = "https://%s.console.ves.volterra.io/api/register/namespaces/system/registrations_by_site/%s" % (
+        tenant, site)
     headers = {
         "Authorization": "APIToken %s" % token
     }
@@ -55,7 +58,25 @@ def approve_registration(tenant, token, name, namespace, state, passport, tunnel
         return False
 
 
+def delete_voltstack_site(site, tenant, token):
+    # remove all Voltstack sites with this name
+    url = "https://%s.console.ves.volterra.io/api/config/namespaces/system/voltstack_sites/%s" % (
+        tenant, site)
+    headers = {
+        "Authorization": "APIToken %s" % token
+    }
+    try:
+        request = urllib.request.Request(
+            url=url, headers=headers, method='DELETE')
+        urllib.request.urlopen(request)
+    except Exception as ex:
+        sys.stderr.write(
+            "Can not delete voltstack site %s: %s\n" % (url, ex))
+        sys.exit(1)
+
+
 def decomission_site(site, tenant, token):
+    # remove all Voltmesh sites with this name
     url = "https://%s.console.ves.volterra.io/api/register/namespaces/system/site/%s/state" % (
         tenant, site)
     headers = {
@@ -71,6 +92,11 @@ def decomission_site(site, tenant, token):
         request = urllib.request.Request(
             url=url, headers=headers, data=bytes(data.encode('utf-8')), method='POST')
         urllib.request.urlopen(request)
+    except HTTPError as her:
+        if her.code != 404:
+            sys.stderr.write(
+                "Can not delete site %s: %s\n" % (url, her))
+            sys.exit(1)
     except Exception as ex:
         sys.stderr.write(
             "Can not delete site %s: %s\n" % (url, ex))
@@ -79,7 +105,7 @@ def decomission_site(site, tenant, token):
 
 def main():
     ap = argparse.ArgumentParser(
-        prog='site_registration_actions',
+        prog='volterra_site_registration_actions',
         usage='%(prog)s.py [options]',
         description='preforms Volterra API node registrations and site delete actions'
     )
@@ -129,6 +155,11 @@ def main():
         default=0,
         type=int
     )
+    ap.add_argument(
+        '--voltstack',
+        help='Create Voltstack site',
+        required=False
+    )
     args = ap.parse_args()
 
     if args.action == "registernodes":
@@ -159,7 +190,8 @@ def main():
                         elif args.ssl == 'true':
                             tunnel_type = 'SITE_TO_SITE_TUNNEL_SSL'
                         if approve_registration(args.tenant, args.token, reg['name'], reg['namespace'], 2, passport, tunnel_type):
-                            sys.stdout.write("approved registration %s for node %s\n" % (reg['name'], reg['get_spec']['infra']['hostname']))
+                            sys.stdout.write("approved registration %s for node %s\n" % (
+                                reg['name'], reg['get_spec']['infra']['hostname']))
                             counted_registrations = counted_registrations + 1
                     elif reg['object']['status']['current_state'] in COUNT_REGISTRATION_STATES:
                         counted_registrations = counted_registrations + 1
@@ -170,7 +202,10 @@ def main():
         sys.stdout.flush()
 
     if args.action == "sitedelete":
-        decomission_site(args.site, args.tenant, args.token)
+        if args.voltstack == "true":
+            delete_voltstack_site(args.site, args.tenant, args.token)
+        else:
+            decomission_site(args.site, args.tenant, args.token)
 
     sys.exit(0)
 

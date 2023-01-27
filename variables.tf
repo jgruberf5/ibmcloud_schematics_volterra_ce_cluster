@@ -1,178 +1,201 @@
 ##################################################################################
-# version - Terraform version required
-##################################################################################
-variable "TF_VERSION" {
-  default     = "0.13"
-  description = "terraform version required for schematics"
-}
-
-##################################################################################
-# region - The VPC region to instatiate the F5 BIG-IP instance
-##################################################################################
-variable "region" {
-  type        = string
-  default     = "us-south"
-  description = "The VPC region to instatiate the F5 BIG-IP instance"
-}
-
-##################################################################################
-# resource_group - The IBM Cloud resource group to create the F5 BIG-IP instance
+# resource_group - The IBM Cloud resource group to create the VPC
 ##################################################################################
 variable "resource_group" {
   type        = string
   default     = "default"
-  description = "The IBM Cloud resource group to create the F5 BIG-IP instance"
+  description = "The IBM Cloud resource group to create the VPC"
 }
 
 ##################################################################################
-# voltera_tenant - The Volterra tenant for API access
+# region - The IBM Cloud VPC Gen 2 region to create VPC environment
 ##################################################################################
-variable "volterra_tenant" {
+variable "region" {
+  default     = "us-south"
+  description = "The IBM Cloud VPC Gen 2 region to create VPC environment"
+}
+
+##################################################################################
+# zone - The zone within the IBM Cloud region to create the VPC environment
+##################################################################################
+variable "zone" {
+  default     = ""
+  description = "The zone within the IBM Cloud region to create the VPC environment"
+}
+
+##################################################################################
+# download_region - The VPC region to Download the Public COS Images
+##################################################################################
+variable "download_region" {
+  type        = string
+  default     = "us-south"
+  description = "The VPC region to Download the Public COS Images"
+}
+
+##################################################################################
+# version - The version of Volterra CE image to Import
+##################################################################################
+variable "ce_version" {
+  type        = string
+  default     = "7.2009.5"
+  description = "The version of Volterra CE image to Import"
+}
+
+##################################################################################
+# vpc - The vpc ID within the IBM Cloud region to create the VPC environment
+##################################################################################
+variable "vpc" {
+  default     = ""
+  description = "The vpc ID within the IBM Cloud region to create the VPC environment"
+}
+
+##################################################################################
+# ssh_key_id - The ID of the existing SSH key to inject into infrastructure
+##################################################################################
+variable "ssh_key_id" {
+  default = ""
+  description = "The ID of the existing SSH key to inject into infrastructure"
+}
+
+##################################################################################
+# security_group_id - The VPC security group ID to connect the Consul cluster 
+##################################################################################
+variable "security_group_id" {
+  default = ""
+  description = "The VPC security group ID to connect the Consul cluster"
+}
+
+##################################################################################
+# tenant - The Volterra tenant (group) name
+##################################################################################
+variable "tenant" {
   type        = string
   default     = ""
-  description = "The Volterra tenant for API access"
+  description = "The Volterra tenant (group) name"
 }
 
 ##################################################################################
-# voltera_api_token - The Volterra token for API access
+# site_name - The Volterra Site name for this VPC
 ##################################################################################
-variable "volterra_api_token" {
+variable "site_name" {
   type        = string
   default     = ""
-  description = "The Volterra token for API access"
+  description = "The Volterra Site name for this VPC"
 }
 
 ##################################################################################
-# voltera_site_token - The Volterra site token
+# fleet_label - The Volterra Fleet label for this VPC
 ##################################################################################
-variable "volterra_site_token" {
+variable "fleet_label" {
   type        = string
   default     = ""
-  description = "The Volterra site token"
+  description = "The Volterra Fleet label for this VPC"
 }
 
 ##################################################################################
-# voltera_cluster_name - The Volterra cluster name created with the site token
+# api_token - The API token to use to register with Volterra
 ##################################################################################
-variable "volterra_cluster_name" {
+variable "api_token" {
   type        = string
   default     = ""
-  description = "The Volterra cluster name created with the site token"
+  description = "The API token to use to register with Volterra"
 }
 
 ##################################################################################
-# voltera_cluster_size - The Volterra cluster size
+# cluster_size - The Volterra cluster size
 ##################################################################################
-variable "volterra_cluster_size" {
+variable "cluster_size" {
   type        = number
-  default     = 1
+  default     = 3
   description = "The Volterra cluster size"
 }
 
 ##################################################################################
-# voltera_voltstack - Include voltstack
+# voltstack - Create Voltstack Site
 ##################################################################################
-variable "volterra_voltstack" {
+variable "voltstack" {
   type        = bool
   default     = false
-  description = "Include voltstack"
+  description = "Create Voltstack Site"
 }
 
 ##################################################################################
-# volterra_image_name - The image to be used when provisioning the Volterra CE instance
+# admin_password - The password for the built-in admin Volterra user
 ##################################################################################
-variable "volterra_image_name" {
-  type        = string
-  default     = "volterra-ce-centos-7-2009-5-202103011045"
-  description = "The image to be used when provisioning the Volterra CE instance"
-}
-
-##################################################################################
-# site_latitude - The Volterra site Latitude
-##################################################################################
-variable "site_latitude" {
-  type        = string
-  default     = ""
-  description = "The Volterra site Latitude"
-}
-
-##################################################################################
-# site_longitude - The Volterra site Latitude
-##################################################################################
-variable "site_longitude" {
-  type        = string
-  default     = ""
-  description = "The Volterra site Longitude"
-}
-
-##################################################################################
-# instance_profile - The name of the VPC profile to use for the Volterra CE instnace
-##################################################################################
-variable "instance_profile" {
-  type        = string
-  default     = "cx2-4x8"
-  description = "The resource profile to be used when provisioning the Volterra CE instance"
-}
-
-##################################################################################
-# ssh_key_name - The name of the public SSH key (VPC Gen 2 SSH Key) to be used for the ops account
-##################################################################################
-variable "ssh_key_name" {
-  type        = string
-  default     = ""
-  description = "The name of the public SSH key (VPC Gen 2 SSH Key) to be used for the ops account"
-}
-
-##################################################################################
-# volterra_admin_password - The password for the built-in admin Volterra user
-##################################################################################
-variable "volterra_admin_password" {
+variable "admin_password" {
   type        = string
   default     = ""
   description = "The password for the built-in admin Volterra user"
 }
 
 ##################################################################################
-# voltera_fleet_name - The Volterra fleet name to tag the cluster
+# ssl_tunnels - Use SSL tunnels to connect to Volterra
 ##################################################################################
-variable "volterra_fleet_name" {
-  type        = string
-  default     = ""
-  description = "The Volterra fleet name to tag the cluster"
-}
-
-##################################################################################
-# external_subnet_id - VPC Gen2 subnet ID for Volterra
-##################################################################################
-variable "external_subnet_id" {
-  type        = string
-  default     = ""
-  description = "VPC Gen2 subnet ID for Volterra"
-}
-
-##################################################################################
-# internal_subnet_id - VPC Gen2 subnet ID for internal resources
-##################################################################################
-variable "internal_subnet_id" {
-  type        = string
-  default     = ""
-  description = "VPC Gen2 subnet ID for internal resources"
-}
-
-##################################################################################
-# volterra_ssl_tunnels - Use SSL tunnels to connect to Volterra
-##################################################################################
-variable "volterra_ssl_tunnels" {
+variable "ssl_tunnels" {
   type        = bool
   default     = false
   description = "Use SSL tunnels to connect to Volterra"
 }
 
 ##################################################################################
-# volterra_ipsec_tunnels - Use IPSEC tunnels to connect to Volterra
+# ipsec_tunnels - Use IPSEC tunnels to connect to Volterra
 ##################################################################################
-variable "volterra_ipsec_tunnels" {
+variable "ipsec_tunnels" {
   type        = bool
   default     = true
   description = "Use IPSEC tunnels to connect to Volterra"
+}
+
+##################################################################################
+# outside_subnet_id - Outside VPC subnet ID
+##################################################################################
+variable "outside_subnet_id" {
+  type = string
+  default = ""
+  description = "Outside VPC subnet ID"
+}
+
+##################################################################################
+# inside_subnet_id - Inside VPC subnet ID
+##################################################################################
+variable "inside_subnet_id" {
+  type = string
+  default = ""
+  description = "Inside VPC subnet ID"
+}
+
+##################################################################################
+# inside_gateway - Inside VPC subnet gateway
+##################################################################################
+variable "inside_gateway" {
+  type = string
+  default = ""
+  description = "Inside VPC subnet gateway"
+}
+
+##################################################################################
+# inside_networks - Inside reachable network IPv4 CIDRs
+##################################################################################
+variable "inside_networks" {
+  type = list(string)
+  default = [ ]
+  description = "Inside reachable network IPv4 CIDRs"
+}
+
+##################################################################################
+# consul_ca_cert - The CA certificate to register Consul service discovery
+##################################################################################
+variable "consul_ca_cert" {
+  type = string
+  default = ""
+  description = "The CA certificate to register Consul service discovery"
+}
+
+##################################################################################
+# consul_https_servers - The Consul servers to register with Consul service discovery
+##################################################################################
+variable "consul_https_servers" {
+  type = list(string)
+  default = []
+  description = "The Consul servers to register with Consul service discovery"
 }
